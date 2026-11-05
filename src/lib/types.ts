@@ -2,7 +2,7 @@ export type Role = 'manager' | 'executor'
 export type Status = 'new' | 'in_progress' | 'in_review' | 'accepted' | 'needs_rework'
 
 export interface Profile { id: string; email: string; full_name: string; role: Role }
-export interface CrmObject { id: string; name: string; address: string }
+export interface CrmObject { id: string; name: string; address: string; deleted_at: string | null; deleted_by: string | null }
 export interface Task {
   id: string
   title: string
@@ -12,6 +12,8 @@ export interface Task {
   status: Status
   author_id: string
   created_at: string
+  deleted_at: string | null
+  deleted_by: string | null
 }
 export interface HistoryItem {
   id: number
@@ -42,6 +44,7 @@ export interface Action { to: Status; label: string; color: string; commentRequi
 
 // UI hint only: the database enforces the same rules in change_task_status()
 export function availableActions(task: Task, profile: Profile): Action[] {
+  if (task.deleted_at) return []
   const mine = task.assignee_id === profile.id
   const mgr = profile.role === 'manager'
   switch (task.status) {

@@ -12,6 +12,7 @@ export function Layout() {
           <Group>
             <Text fw={700}>Мини-CRM</Text>
             <Button component={Link} to="/" variant="subtle">Объекты</Button>
+            {profile?.role === 'manager' && <Button component={Link} to="/deleted" variant="subtle" color="gray">Удалённые</Button>}
             {profile?.role === 'executor' && <Button component={Link} to="/my" variant="subtle">Мои задачи</Button>}
           </Group>
           <Group>

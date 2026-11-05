@@ -1,8 +1,9 @@
 import { Button, Group, Loader, Modal, Select, Stack, Text, TextInput, Textarea, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { modals } from '@mantine/modals'
 import { useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { TasksTable } from '../components/TasksTable'
+import { TasksView } from '../components/TasksView'
 import { useAuth } from '../lib/auth'
 import { showError, useLoad, useProfiles } from '../lib/hooks'
 import { supabase } from '../lib/supabase'
@@ -16,7 +17,7 @@ export function ObjectPage() {
   const isManager = profile?.role === 'manager'
   const obj = useLoad<CrmObject>(() => supabase.from('objects').select('*').eq('id', id!).maybeSingle())
   const tasks = useLoad<Task[]>(() =>
-    supabase.from('tasks').select('*').eq('object_id', id!).order('created_at', { ascending: false }))
+    supabase.from('tasks').select('*').eq('object_id', id!).is('deleted_at', null).order('created_at', { ascending: false }))
   const [taskModal, taskCtl] = useDisclosure()
   const [editModal, editCtl] = useDisclosure()
   const [title, setTitle] = useState('')
@@ -26,7 +27,7 @@ export function ObjectPage() {
   const [address, setAddress] = useState('')
 
   if (obj.loading || tasks.loading) return <Loader />
-  if (!obj.data) return <Text>Объект не найден</Text>
+  if (!obj.data || obj.data.deleted_at) return <Text>Объект не найден или удалён</Text>
 
   const executors = profiles.filter((p) => p.role === 'executor').map((p) => ({ value: p.id, label: p.full_name || p.email }))
 
@@ -42,12 +43,17 @@ export function ObjectPage() {
     if (error) return showError(error.message)
     editCtl.close(); obj.reload()
   }
-  const remove = async () => {
-    if (!confirm('Удалить объект вместе со всеми задачами?')) return
-    const { error } = await supabase.from('objects').delete().eq('id', id!)
-    if (error) return showError(error.message)
-    nav('/')
-  }
+  const remove = () => modals.openConfirmModal({
+    title: 'Удалить объект?',
+    children: <Text size="sm">Объект будет удалён вместе со всеми задачами. Их можно будет посмотреть в разделе «Удалённые».</Text>,
+    labels: { confirm: 'Удалить', cancel: 'Отмена' },
+    confirmProps: { color: 'red' },
+    onConfirm: async () => {
+      const { error } = await supabase.rpc('delete_object', { p_object_id: id! })
+      if (error) return showError(error.message)
+      nav('/')
+    },
+  })
 
   return (
     <Stack>
@@ -65,7 +71,7 @@ export function ObjectPage() {
         )}
       </Group>
       <Title order={4}>Задачи</Title>
-      <TasksTable tasks={tasks.data ?? []} profiles={profiles} />
+      <TasksView tasks={tasks.data ?? []} profiles={profiles} onChanged={tasks.reload} />
       <Modal opened={taskModal} onClose={taskCtl.close} title="Новая задача">
         <form onSubmit={createTask}>
           <Stack>

@@ -1,7 +1,7 @@
 import { Button, Group, Loader, Modal, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { showError, useLoad } from '../lib/hooks'
 import { supabase } from '../lib/supabase'
@@ -9,8 +9,9 @@ import type { CrmObject } from '../lib/types'
 
 export function Objects() {
   const { profile } = useAuth()
+  const nav = useNavigate()
   const { data, loading, reload } = useLoad<CrmObject[]>(() =>
-    supabase.from('objects').select('*').order('created_at', { ascending: false }))
+    supabase.from('objects').select('*').is('deleted_at', null).order('created_at', { ascending: false }))
   const [opened, { open, close }] = useDisclosure()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
@@ -34,8 +35,8 @@ export function Objects() {
           <Table.Thead><Table.Tr><Table.Th>Название</Table.Th><Table.Th>Адрес</Table.Th></Table.Tr></Table.Thead>
           <Table.Tbody>
             {data.map((o) => (
-              <Table.Tr key={o.id}>
-                <Table.Td><Link to={`/objects/${o.id}`}>{o.name}</Link></Table.Td>
+              <Table.Tr key={o.id} style={{ cursor: 'pointer' }} onClick={() => nav(`/objects/${o.id}`)}>
+                <Table.Td><Link to={`/objects/${o.id}`} onClick={(e) => e.stopPropagation()}>{o.name}</Link></Table.Td>
                 <Table.Td>{o.address}</Table.Td>
               </Table.Tr>
             ))}
