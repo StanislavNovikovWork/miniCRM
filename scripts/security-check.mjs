@@ -1,5 +1,5 @@
 // Direct-API security check (bypasses the UI). Usage:
-//   DEMO_PASSWORD=... node --env-file=.env scripts/security-check.mjs
+//   DEMO_PASSWORD=... node --env-file=.env.development scripts/security-check.mjs
 // Assumes the demo users from supabase/seed_demo.sql, all with the same password.
 import { createClient } from '@supabase/supabase-js'
 
